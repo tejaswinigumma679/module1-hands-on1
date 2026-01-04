@@ -1,91 +1,85 @@
 package teja.example.teja
 
-import android.graphics.Color
+import android.content.Intent
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
+import android.widget.Button
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import teja.example.teja.components.StyledButton
+import androidx.appcompat.app.AlertDialog
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var btnPrimary: StyledButton
-    private lateinit var btnSecondary: StyledButton
-    private lateinit var btnDanger: StyledButton
-    private lateinit var btnToggleLoading: StyledButton
-    private lateinit var btnSuccess: StyledButton
-    private lateinit var btnWarning: StyledButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Find views by ID
-        btnPrimary = findViewById (R.id.btnPrimary)
-        btnSecondary = findViewById(R.id.btnSecondary)
-        btnDanger = findViewById(R.id.btnDanger)
-        btnToggleLoading = findViewById(R.id.btnToggleLoading)
-        btnSuccess = findViewById(R.id.btnSuccess)
-        btnWarning = findViewById(R.id.btnWarning)
-
-        // Set button colors
-        btnPrimary.setButtonColor(Color.BLUE)
-        btnSecondary.setButtonColor(Color.LTGRAY)
-        btnDanger.setButtonColor(Color.RED)
-        btnToggleLoading.setButtonColor(Color.LTGRAY)
-        btnSuccess.setButtonColor(Color.GREEN)
-        btnWarning.setButtonColor(Color.parseColor("#FF9800")) // Orange
-
-        // Set button texts
-        btnPrimary.setText("Primary Button")
-        btnSecondary.setText("Secondary Button")
-        btnDanger.setText("Danger Button")
-        btnToggleLoading.setText("Toggle Loading")
-        btnSuccess.setText("Success Button")
-        btnWarning.setText("Warning Button")
-
-        // Set secondary button text color to black (for visibility)
-        btnSecondary.findViewById<android.widget.Button>(0)?.setTextColor(Color.BLACK)
-        btnToggleLoading.findViewById<android.widget.Button>(0)?.setTextColor(Color.BLACK)
-
-        setupButtons()
+        setupUI()
+        displayCurrentLocale()
     }
 
-    private fun setupButtons() {
-        // Primary button
-        btnPrimary.setOnButtonClickListener {
-            Toast.makeText(this, "Primary Button Clicked!", Toast.LENGTH_SHORT).show()
+    private fun setupUI() {
+        val changeLanguageButton = findViewById<Button>(R.id.changeLanguageButton)
+        changeLanguageButton.setOnClickListener {
+            showLanguageChangeDialog()
+        }
+    }
+
+    private fun displayCurrentLocale() {
+        val currentLocale: Locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            resources.configuration.locales[0]
+        } else {
+            resources.configuration.locale
         }
 
-        // Secondary button
-        btnSecondary.setOnButtonClickListener {
-            Toast.makeText(this, "Secondary Button Clicked!", Toast.LENGTH_SHORT).show()
-        }
+        val languageTextView = findViewById<TextView>(R.id.languageTextView)
+        val currentText = getString(R.string.current_language)
+        val languageName = currentLocale.displayName
 
-        // Danger button
-        btnDanger.setOnButtonClickListener {
-            Toast.makeText(this, "Danger Button Clicked!", Toast.LENGTH_SHORT).show()
-        }
+        // Update the text to show actual language name
+        languageTextView.text = "$currentText\n($languageName)"
+    }
 
-        // Toggle loading button
-        btnToggleLoading.setOnButtonClickListener {
-            val isLoading = btnDanger.isLoading
-            btnDanger.setLoading(!isLoading)
+    private fun showLanguageChangeDialog() {
+        val languages = arrayOf("English", "Español", "Français")
 
-            if (!isLoading) {
-                Toast.makeText(this, "Loading started", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Loading stopped", Toast.LENGTH_SHORT).show()
+        AlertDialog.Builder(this)
+            .setTitle("Select Language")
+            .setItems(languages) { _, which ->
+                when (which) {
+                    0 -> setAppLocale("en")
+                    1 -> setAppLocale("es")
+                    2 -> setAppLocale("fr")
+                }
             }
-        }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
 
-        // Success button
-        btnSuccess.setOnButtonClickListener {
-            Toast.makeText(this, "Success Button Clicked!", Toast.LENGTH_SHORT).show()
-        }
+    private fun setAppLocale(languageCode: String) {
+        val locale = Locale(languageCode)
+        Locale.setDefault(locale)
 
-        // Warning button
-        btnWarning.setOnButtonClickListener {
-            Toast.makeText(this, "Warning Button Clicked!", Toast.LENGTH_SHORT).show()
-        }
+        val config = Configuration()
+        config.setLocale(locale)
+
+        baseContext.resources.updateConfiguration(
+            config,
+            baseContext.resources.displayMetrics
+        )
+
+        // Restart activity to apply language change
+        val intent = Intent(this, MainActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Refresh UI when configuration changes
+        displayCurrentLocale()
     }
 }
